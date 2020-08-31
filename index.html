@@ -1,0 +1,143 @@
+<html>
+
+<head>
+    <style>
+        .myButton {
+            box-shadow: 3px 4px 0px 0px #899599;
+            background: linear-gradient(to bottom, #ededed 5%, #bab1ba 100%);
+            background-color: #ededed;
+            border-radius: 15px;
+            border: 1px solid #d6bcd6;
+            display: inline-block;
+            cursor: pointer;
+            color: #3a8a9e;
+            font-family: Arial;
+            font-size: 17px;
+            padding: 2px 19px;
+            text-decoration: none;
+            text-shadow: 0px 1px 0px #e1e2ed;
+        }
+
+        .myButton:hover {
+            background: linear-gradient(to bottom, #bab1ba 5%, #ededed 100%);
+            background-color: #bab1ba;
+        }
+
+        .myButton:active {
+            position: relative;
+            top: 1px;
+        }
+
+        input[type=text],
+        select {
+            width: 450px;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+
+</head>
+<h1>Chat Local Gateway</h1>
+<input type="text" id="text" onfocus="this.value=''" placeholder="Enter Text"><br><br>
+<button class="myButton" onclick="openTestWebSocket()">Connect</button>
+<button id="changeChannel" class="myButton" onclick="changeChannel()">Domain</button>
+<button class="myButton" onclick="doSend()">Send</button><br><br>
+<button class="myButton" onclick="closeIt()">Disconnect</button>
+<p id="myText"></p>
+<p id="connectionMadeVerification"></p>
+
+<body onload="b()">
+    <script>
+        var Url;
+        var wsUri;
+        var messages = [];
+        var output;
+        var connected = false;
+        var currentChannel = "Domain";
+        var disconnected = false;
+        function b() {
+            var currURL;
+            Url = window.open(currURL, "_self").location.hostname;
+            wsUri = "ws://" + Url + ":8090/";
+        }
+
+        function changeChannel() {
+            if (currentChannel == "Domain") {
+                currentChannel = "Local";
+                document.getElementById("changeChannel").innerHTML = currentChannel;
+            } else if (currentChannel == "Local") {
+                currentChannel = "Domain";
+                document.getElementById("changeChannel").innerHTML = currentChannel;
+            }
+        }
+
+        function openTestWebSocket() {
+            if (connected) {
+                return;
+            }
+            disconnected = false;
+            websocket = new WebSocket(wsUri);
+            websocket.onopen = function (evt) { onOpen(evt) };
+            websocket.onclose = function (evt) { onClose(evt) };
+            websocket.onmessage = function (evt) { onMessage(evt) };
+            websocket.onerror = function (evt) { onError(evt) };
+        }
+
+        function onOpen(evt) {
+            connected = true;
+//            console.log("CONNECTED");
+            document.getElementById("connectionMadeVerification").innerHTML = "CONNECTED";
+        }
+
+        function onClose(evt) {
+            connected = false;
+//            console.log("DISCONNECTED");
+            document.getElementById("connectionMadeVerification").innerHTML = "DISCONNECTED";
+            if (!disconnected) {
+                setTimeout(function () {
+                    openTestWebSocket();
+                }, 1000);
+            }
+        }
+
+        function onMessage(evt) {
+            var messageJson = JSON.parse(evt.data);
+            messages[messages.length] = '<span style="color: blue;">' + "(" + messageJson.channel + ")  " + messageJson.displayName + ': ' + messageJson.message + '</span><br><br>';
+            var myText = "";
+            for (let i = 0; i < messages.length; i++) {
+                myText = messages[i] + myText;
+            }
+            document.getElementById("myText").innerHTML = myText;
+        }
+
+        function onError(evt) {
+//            console.log("ERROR");
+        }
+
+        function doSend(message) {
+            message = document.getElementById("text").value;
+            if (message == "") {
+                return;
+            }
+            var messageJson = {
+                uuid: "",
+                message: message,
+                displayName: "Your Message",
+                channel: currentChannel
+            };
+            websocket.send(JSON.stringify(messageJson));
+        }
+
+        function closeIt() {
+            disconnected = true;
+            websocket.close();
+        }
+
+    </script>
+</body>
+
+</html>
