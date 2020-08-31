@@ -13,7 +13,11 @@ function onMessageReceived(channel, message, sender, localOnly) {
             channel: messageData.channel,
             myId: myId
         };
-        doSend(messageJson);
+        if (messageData.channel == "Local" && Vec3.withinEpsilon(MyAvatar.position, messageData.position, 20)) {
+            doSend(messageJson);
+        } else if (messageData.channel == "Domain") {
+            doSend(messageJson);
+        }
     }
 }
 
@@ -55,7 +59,7 @@ function onOpen(evt) {
 
 function onClose(evt) {
     connected = false;
-    Script.setTimeout(function() {
+    Script.setTimeout(function () {
         openTestWebSocket();
     }, 1000);
 }
